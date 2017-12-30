@@ -44,23 +44,11 @@ _start:
     subl $ST_SIZE_RESERVE, %esp # Allocate space for file descriptors
 
 open_files:
-open_fd_in:
-    movl $SYS_OPEN, %eax # System call
-    movl ST_ARGV_1(%ebp), %ebx # Input filename
-    movl $O_RDONLY, %ecx # read only flag
-    movl $0666, %edx
-    int $LINUX_SYSCALL
 store_fd_in:
     # save the given file descriptor
-    movl %eax, ST_FD_IN(%ebp)
-open_fd_out:
-    movl $SYS_OPEN, %eax # open the file
-    movl ST_ARGV_2(%ebp), %ebx # output file into %ebx
-    movl $O_CREAT_WRONLY_TRUNC, %ecx # flags
-    movl $0666, %edx # mode for new file
-    int $LINUX_SYSCALL
+    movl $STDIN, ST_FD_IN(%ebp)
 store_fd_out:
-    movl %eax, ST_FD_OUT(%ebp) # store the file descriptor here
+    movl $STDOUT, ST_FD_OUT(%ebp) # store the file descriptor here
 
 read_loop_begin:
     ### READ IN BLOCK ###
@@ -73,7 +61,7 @@ read_loop_begin:
 
     ### EXIT IF WE'VE REACHED THE END ###
     cmpl $END_OF_FILE, %eax
-    jle end_loop
+    jle read_loop_begin
 
 continue_read_loop:
     ### CONVERT THE BLOCK TO UPPER CASE
@@ -95,15 +83,6 @@ continue_read_loop:
     jmp read_loop_begin
 
 end_loop:
-    ### CLOSE THE FILES ###
-    movl $SYS_CLOSE, %eax
-    movl ST_FD_OUT(%ebp), %ebx
-    int $LINUX_SYSCALL
-
-    movl $SYS_CLOSE, %eax
-    movl ST_FD_IN(%ebp), %ebx
-    int $LINUX_SYSCALL
-
     ### EXIT ###
     movl $SYS_EXIT, %eax
     movl $0, %ebx
